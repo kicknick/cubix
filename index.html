@@ -1,0 +1,269 @@
+<html>
+<head>
+	<title>cubix</title>
+</head>
+<body>
+<div id="field"></div>
+<script type="text/javascript">
+	var canvas
+	var size = 6
+	var minSide = Math.min(document.documentElement.clientHeight, width=document.documentElement.clientWidth)
+	var l = (minSide*0.5)/size
+	var strokeWidth = 2
+	var maxGapSize = 5
+	var moveCompleted = true
+	var baseElems = [[1], [2], [1, 1], [2, 2]];
+	var map = []; //0 - empty; 1-white; 2-black
+	for(var i=0; i<size; i++) {
+		map.push([])
+		for(var j=0; j<size; j++) {
+			map[i].push(0)
+		}
+	}
+
+
+	var draw = function() {
+		for(var i=0; i<size; i++) {
+			for(var j=0; j<size; j++) {
+				ctx.strokeStyle = "black";
+				ctx.fillStyle = "white";
+				ctx.lineWidth = 1;
+        ctx.strokeRect(j*l+1, i*l+1, l, l);
+        ctx.fillRect(j*l+1, i*l+1, l, l);
+				if(map[i][j] == 0) {
+
+				}
+				else if(map[i][j] == 1) {
+					ctx.strokeStyle = "black";
+					ctx.fillStyle = "white";
+					ctx.lineWidth  = strokeWidth;
+			    ctx.strokeRect(j*l+strokeWidth/2+1, i*l+strokeWidth/2+1, l-strokeWidth-1, l-strokeWidth-1);
+			    ctx.fillRect(j*l+strokeWidth+1, i*l+strokeWidth+1, l-2*strokeWidth, l-2*strokeWidth);
+				}
+				else {
+					ctx.strokeStyle = "black";
+					ctx.fillStyle = "black";
+					ctx.lineWidth  = strokeWidth;
+			    ctx.strokeRect(j*l+strokeWidth/2+1, i*l+strokeWidth/2+1, l-strokeWidth-1, l-strokeWidth-1);
+			    ctx.fillRect(j*l+strokeWidth+1, i*l+strokeWidth+1, l-2*strokeWidth, l-2*strokeWidth);
+				}
+			}
+		}
+	}
+
+
+	var initGame = function(x, y) {
+        canvas=document.createElement("canvas");
+        document.getElementById('field').appendChild(canvas);
+        canvas.width = minSide
+        canvas.height = minSide
+        ctx = canvas.getContext("2d");
+        generateRandomElemsLine("bottom")
+        draw();
+    }
+
+
+	var generateRandomElemsLine = function(type) {  // top, bottom, left, right
+
+		var line = [];
+
+ 		var t = 0 //temp line length
+ 		gapOrBlock = Math.floor(Math.random() * 2)
+ 		// gapOrBlock = 0
+ 		while(t < size) {
+ 			//gap or block
+ 			if(gapOrBlock % 2 == 0) { //gap 
+ 				gapSize = Math.floor(Math.random() * (maxGapSize - 1) + 1)
+ 				// console.log("gapSize=", gapSize)
+ 				if(t + gapSize <= size) { 
+ 					t+=gapSize
+ 					for(var i=0; i <	gapSize; i++) line.push(0);
+ 				}
+ 				else 
+ 					for(var i=0; i <= size-t; i++) {
+ 						line.push(0);
+ 						t++;
+ 					}
+ 			}
+ 			else { //block
+ 				randomBlock = Math.floor(Math.random() * baseElems.length);
+ 				// console.log("randomBlock=", randomBlock)
+ 				line.push(baseElems[randomBlock])
+ 				blockLength = baseElems[randomBlock].length
+ 				if(t + blockLength <= size) t+=blockLength
+				else {
+					for(var i=0; i <= size-t; i++) {
+						line.push(0);
+						t++;
+					}
+				}
+ 			}
+ 			gapOrBlock++;
+ 		}
+
+ 		var k = 0
+ 		var s
+ 		if(type == "top") s=0
+ 			else if(type == "bottom") s=size-1
+ 				else if (type == "left") s=0
+ 					else s=size-1
+
+ 		//	console.log(s)
+ 		if(type == "top" || type == "bottom") {
+	 		for(var i in line) {
+	 			if(Array.isArray(line[i])) {
+	 				for(var j in line[i]) {
+	 					map[s][k] = line[i][j]
+	 					k++;
+	 				}
+	 			}
+	 			else {
+	 				map[s][k] = line[i]
+	 				k++;
+	 			}
+	 		}
+ 		}
+
+ 		else if(type == "left" || type == "right") {
+	 		for(var i in line) {
+	 			if(Array.isArray(line[i])) {
+	 				for(var j in line[i]) {
+	 					map[k][s] = line[i][j]
+	 					k++;
+	 				}
+	 			}
+	 			else {
+	 				map[k][s] = line[i]
+	 				k++;
+	 			}
+	 		}
+ 		}
+  }
+
+
+  var move = function(code) {
+  		// console.log(code)
+      switch(code) {
+      	case 40:  //down
+  				slowMotion2("down", function() {draw()})
+      	break;
+      	case 38:  //up
+					slowMotion2("up", function() {draw()})
+      	break;
+      	case 39:  //right
+      	  generateRandomElemsLine("right")
+  				draw()
+      	break;
+      	case 37:  //left
+      	  generateRandomElemsLine("left")
+  				draw()
+      	break;
+      }
+  }
+
+	document.addEventListener("keydown", function(e){
+			if(moveCompleted) move(e.keyCode)
+	});
+
+	function slowMotion2(dir, callback) {  //[0,0,0,1,2,0,3,0] --> [1, 2, 3, 0, 0, 0]
+		//up
+		for(var j=0; j<size; j++) {
+			var k = 0
+			var gapNum = 0
+			for(var i=0; i<size; i++){
+				if(map[i][j] != 0) {
+					if(gapNum == 0) {
+						map[k][j] = map[i][j]
+						if(i!=k)map[i][j] = 0
+						k++
+					}
+					else {
+						for(var m=k; m>0; m++) {
+							if(map[m][j] == map[i][j]) {
+								map[i][j] = 0
+							}
+						}
+					}
+				}
+				else {
+					gapNum++
+				}
+			}
+		}
+		callback()
+	}
+
+
+
+
+
+	function slowMotion(direction) {
+		moveCompleted = false
+		var i;
+		if(direction == "down") {
+			i = 0
+			d = 1
+		}
+		else if(direction == "up") {
+			i = size-1;
+			d = -1
+		}
+
+		function anime(direction) {
+			// for(var i=1; i<size; i++){
+			for(var j=0; j<size; j++) {
+				if(map[i][j] != 0) {
+					if(map[i][j] == 1) {  //white block
+						if(map[i+d][j] == 1 || map[i+d][j] == 0) { //white on white
+							map[i][j] = 0
+							map[i+d][j] = 1
+						}
+						else if(map[i+d][j] == 2) { //white on black 
+							//console.log("white on black", map[i], map[i+1])
+						}
+					}
+					else { //black block
+						if(map[i+d][j] == 2 || map[i+d][j] == 0) { //black on black
+							map[i][j] = 0
+							map[i+d][j] = 2
+						}
+						else if(map[i+d][j] == 1) { //black on white
+							// console.log("black on white", map[i], map[i+1])
+						}
+					}
+				}
+			}
+			//}
+
+
+			draw()
+			i+=d
+	    var t = setTimeout(function() {
+	    	window.clearInterval(t)
+	    	if(direction == "down") {
+	    		if(i<size-1) anime(direction)
+	    			else {
+	    				moveCompleted = true
+	    				// generateRandomElemsLine("top");
+	    				// draw();
+	    			}
+	    	}
+	    	else if(direction == "up") {
+	    		if(i>0) anime(direction)
+	    			else {
+	    				moveCompleted = true
+	    				// generateRandomElemsLine("bottom");
+	    				// draw()
+	    			}
+	    	}
+
+			}, 100);
+		}
+		anime(direction)
+	}
+
+
+	initGame();
+</script>
+</body>
+</html>
