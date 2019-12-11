@@ -14,23 +14,23 @@
 <div id="field"></div>
 <script type="text/javascript">
 	var canvas
-	var size = 6
+	var size = 5
 	var minSide = Math.min(document.documentElement.clientHeight, width=document.documentElement.clientWidth)
 	var l = (minSide*0.5)/size
-	var strokeWidth = 2
+	var strokeWidth = 4
 	var maxGapSize = 5
 	var moveCompleted = true
 	var baseElems = [[1], [2], [1, 1], [2, 2]];
-	var map = []; //0 - empty; 1-white; 2-black
-	for(var i=0; i<size; i++) {
-		map.push([])
-		for(var j=0; j<size; j++) {
-			map[i].push(0)
-		}
-	}
+	// var map = []; //0 - empty; 1-white; 2-black
+	// for(var i=0; i<size; i++) {
+	// 	map.push([])
+	// 	for(var j=0; j<size; j++) {
+	// 		map[i].push(0)
+	// 	}
+	// }
 
 
-	var draw = function() {
+	var draw = function(map) {
 		for(var i=0; i<size; i++) {
 			for(var j=0; j<size; j++) {
 				ctx.strokeStyle = "black";
@@ -39,7 +39,6 @@
         ctx.strokeRect(j*l+1, i*l+1, l, l);
         ctx.fillRect(j*l+1, i*l+1, l, l);
 				if(map[i][j] == 0) {
-
 				}
 				else if(map[i][j] == 1) {
 					ctx.strokeStyle = "black";
@@ -48,9 +47,16 @@
 			    ctx.strokeRect(j*l+strokeWidth/2+1, i*l+strokeWidth/2+1, l-strokeWidth-1, l-strokeWidth-1);
 			    ctx.fillRect(j*l+strokeWidth+1, i*l+strokeWidth+1, l-2*strokeWidth, l-2*strokeWidth);
 				}
-				else {
+				else if(map[i][j] == 2) {
 					ctx.strokeStyle = "black";
 					ctx.fillStyle = "black";
+					ctx.lineWidth  = strokeWidth;
+			    ctx.strokeRect(j*l+strokeWidth/2+1, i*l+strokeWidth/2+1, l-strokeWidth-1, l-strokeWidth-1);
+			    ctx.fillRect(j*l+strokeWidth+1, i*l+strokeWidth+1, l-2*strokeWidth, l-2*strokeWidth);
+				}
+				else if(map[i][j] == 3) {
+					ctx.strokeStyle = "black";
+					ctx.fillStyle = "red";
 					ctx.lineWidth  = strokeWidth;
 			    ctx.strokeRect(j*l+strokeWidth/2+1, i*l+strokeWidth/2+1, l-strokeWidth-1, l-strokeWidth-1);
 			    ctx.fillRect(j*l+strokeWidth+1, i*l+strokeWidth+1, l-2*strokeWidth, l-2*strokeWidth);
@@ -59,20 +65,117 @@
 		}
 	}
 
+	var drawAnigilation = function(changed, map) {
+		for(var k in changed){
+			let i = changed[k][0]
+			let j = changed[k][1]
+			map[i][j] = 3
+		}
+		draw(map)
+		if(changed.length > 0) {
+			for(var k in changed){
+				let i = changed[k][0]
+				let j = changed[k][1]
+				map[i][j] = 0
+			}
+		let timerId = setTimeout(() => {
+			draw(map)
+			clearTimeout(timerId);
+			}, 1500);
+		}
+	}
+
 
 	var initGame = function(x, y) {
-        canvas=document.createElement("canvas");
-        document.getElementById('field').appendChild(canvas);
-        canvas.width = minSide
-        canvas.height = minSide
-        ctx = canvas.getContext("2d");
-        generateRandomElemsLine("bottom")
-        draw();
-    }
+    canvas=document.createElement("canvas");
+    document.getElementById('field').appendChild(canvas);
+    canvas.width = minSide
+    canvas.height = minSide
+    ctx = canvas.getContext("2d");
+
+		var map = []; //0 - empty; 1-white; 2-black
+		for(var i=0; i<size; i++) {
+			map.push([])
+			for(var j=0; j<size; j++) {
+				map[i].push(0)
+			}
+		}
+    // generateRandomElemsLine("left", map)
+    return map
+  }
+
+  var checkCombo = function() { /// на одной линии 
+  	for(let i=0; i<size; i++) {
+  		let s1 = s2 = 0
+  		for(let j=0; j<size; j++) {
+  			if(map[i][j] == 1) s1+=1
+  				else if(map[i][j] == 2) s1-=1
+  			if(map[j][i] == 1) s2+=1
+  				else if(map[j][i] == 2) s2-=1
+  		}
+    	if(Math.abs(s1) == size) {
+    		for(let k=0; k<size; k++) {
+    			map[i][k] = 0
+    		}
+    		console.log("LINE ANIGILATION")
+    	}
+    	if(Math.abs(s2) == size) {
+    		for(let k=0; k<size; k++) {
+    			map[k][i] = 0
+    		}
+    		console.log("LINE ANIGILATION")
+    	}
+  	}
+  }
 
 
-	var generateRandomElemsLine = function(type) {  // top, bottom, left, right
+var checkCombo1 = function(map) { //4 одинаковых рядом 
+	var changed = []
+	for(let i=0; i<size-1; i++) {
+		for(let j=0; j<size-1; j++){
+			if(map[i][j]==map[i][j+1] && map[i][j]==map[i+1][j+1] && map[i][j]==map[i+1][j] && map[i][j]!=0) {
+				console.log("COMBO1", i, j)
+				changed.push([i, j])
+				changed.push([i, j+1])
+				changed.push([i+1, j+1])
+				changed.push([i+1, j])
+			}
+		}
+	}
+	return changed
+}
 
+var checkCombo2 = function(map) { //3 одинаковых гориз или вертик
+	var changed = []
+	for(let i=0; i<size-2; i++) {
+		for(let j=0; j<size-2; j++){
+			if(map[i][j] == map[i][j+1] && map[i][j] == map[i][j+2] && map[i][j]!=0) { //горизонт
+				console.log("COMBO2", i, j)
+				// map[i][j] = 0
+				// map[i][j+1] = 0
+				// map[i][j+2] = 0
+				changed.push([i, j])
+				changed.push([i, j+1])
+				changed.push([i, j+2])
+			}
+			if(map[i][j] == map[i+1][j] && map[i][j] == map[i+2][j] && map[i][j]!=0) { //вертикаль
+				console.log("COMBO2", i, j)
+				// map[i][j] = 0
+				// map[i+1][j] = 0
+				// map[i+2][j] = 0
+				changed.push([i, j])
+				changed.push([i+1, j])
+				changed.push([i+2, j])
+			}
+		}
+	}
+	return changed
+}
+
+
+
+
+	var generateRandomElemsLine = function(type, map) {  // top, bottom, left, right
 		var line = [];
 
  		var t = 0 //temp line length
@@ -83,12 +186,12 @@
  			if(gapOrBlock % 2 == 0) { //gap 
  				gapSize = Math.floor(Math.random() * (maxGapSize - 1) + 1)
  				// console.log("gapSize=", gapSize)
- 				if(t + gapSize <= size) { 
+ 				if(t + gapSize < size) { 
  					t+=gapSize
  					for(var i=0; i <	gapSize; i++) line.push(0);
  				}
  				else 
- 					for(var i=0; i <= size-t; i++) {
+ 					for(var i=0; i < size-t; i++) {
  						line.push(0);
  						t++;
  					}
@@ -96,11 +199,14 @@
  			else { //block
  				randomBlock = Math.floor(Math.random() * baseElems.length);
  				// console.log("randomBlock=", randomBlock)
- 				line.push(baseElems[randomBlock])
+
  				blockLength = baseElems[randomBlock].length
- 				if(t + blockLength <= size) t+=blockLength
+ 				if(t + blockLength <= size) {
+ 					line.push(baseElems[randomBlock])
+ 					t+=blockLength
+ 				}
 				else {
-					for(var i=0; i <= size-t; i++) {
+					for(var i=0; i < size-t; i++) {
 						line.push(0);
 						t++;
 					}
@@ -133,6 +239,7 @@
  		}
 
  		else if(type == "left" || type == "right") {
+ 			// console.log(line)
 	 		for(var i in line) {
 	 			if(Array.isArray(line[i])) {
 	 				for(var j in line[i]) {
@@ -146,32 +253,527 @@
 	 			}
 	 		}
  		}
+ 		return map
   }
+
+
+ var generateClever = function() { //черный поцентру вокруг 8 белых
+ 	var randomPos = function() {
+		return Math.floor(Math.random() * size)
+ 	}
+ 	let c = 0
+ 	while(c<8) {
+ 		let i = randomPos()
+ 		let j = randomPos()
+ 		if(map[i][j] == 0) {
+ 			map[i][j] = 1
+ 			c++
+ 		}
+ 	}
+ 	c = 0
+ 	while(c<1) {
+ 		let i = randomPos()
+ 		let j = randomPos()
+ 		if(map[i][j] == 0) {
+ 			map[i][j] = 2
+ 			c++
+ 		}
+ 	}
+ 	draw(map)
+ }
+
+
+
+
+
+	class OneStepController {
+		collapseLeftRight (map) {
+			for(let i=0; i<size; i++) {
+				for(let j=size-1; j>=0; j--) { // поиск островков которые нужно анагилировать 
+					if(j+1<size && map[i][j+1]==0) {
+						map[i][j+1] = map[i][j]
+						map[i][j] = 0
+					}
+				}
+			}
+			return map
+		}
+
+		collapseRightLeft(map) {
+			let transMap = transponationAntiClock(transponationAntiClock(map, size), size)
+			let newMap = this.collapseLeftRight(transMap)
+			let transNewMap = transponationClock(transponationClock(newMap, size), size)
+			return transNewMap
+		}
+
+		collapseTopBottom(map) {
+			let transMap = transponationAntiClock(map, size)
+			let newMap = this.collapseLeftRight(transMap)
+			let transNewMap = transponationClock(newMap, size)
+			return transNewMap
+		}
+
+		collapseBottomTop() {
+			let transMap = transponationClock(map, size)
+			let newMap = this.collapseLeftRight(transMap)
+			let transNewMap = transponationAntiClock(newMap, size)
+			return transNewMap
+		}
+	}
+
+	let oneStepController = new OneStepController;
+
+
+	let map = initGame();
+	draw(map)
+
 
 
   var move = function(code) {
   		// console.log(code)
-      switch(code) {
-      	case 40:  //down
-  				slowMotion2("down", function() {draw()})
-      	break;
-      	case 38:  //up
-					slowMotion2("up", function() {draw()})
-      	break;
-      	case 39:  //right
-      	  generateRandomElemsLine("right")
-  				draw()
-      	break;
-      	case 37:  //left
-      	  generateRandomElemsLine("left")
-  				draw()
-      	break;
-      }
+  	let newMap, changed
+    switch(code) {
+    	case 40:  //down
+				newMap = oneStepController.collapseTopBottom(map)
+				map = newMap
+				// generateRandomElemsLine("top", map);
+      	draw(map)
+      	// changed = checkCombo1(map)
+    	  // drawAnigilation(changed, map)
+    	break;
+    	case 38:  //up
+				newMap = oneStepController.collapseBottomTop(map)
+				map = newMap
+				// generateRandomElemsLine("bottom", map);
+      	draw(map)
+      	// changed = checkCombo1(map)
+    	  // drawAnigilation(changed, map)
+    	break;
+    	case 39:  //right
+				newMap = oneStepController.collapseLeftRight(map)
+				map = newMap
+				// generateRandomElemsLine("left", map);
+      	draw(map)
+      	// changed = checkCombo1(map)
+    	  // drawAnigilation(changed, map)
+    	break;
+
+    	case 37:  //left
+    		newMap = oneStepController.collapseRightLeft(map)
+				map = newMap
+				// generateRandomElemsLine("right", map);
+      	draw(map)
+      	// changed = checkCombo1(map)
+    	  // drawAnigilation(changed, map)
+    	break;
+    }
   }
 
+
 	document.addEventListener("keydown", function(e){
-			if(moveCompleted) move(e.keyCode)
+		if(moveCompleted) move(e.keyCode)
 	});
+
+
+
+
+function transponationClock(map, size) { //по часовой
+	let A = []
+	for(let i=0; i<size; i++) A[i] = new Array(size)
+	for(let i=0; i<size; i++) {
+		for(let j=0; j<size; j++) {
+			A[i][j] = map[size-1-j][i]
+		}
+	}
+	return A;
+}
+
+
+function transponationAntiClock(map, size) { //по часовой
+	let A = []
+	for(let i=0; i<size; i++) A[i] = new Array(size)
+	for(let i=0; i<size; i++) {
+		for(let j=0; j<size; j++) {
+			A[size-1-j][i] = map[i][j]
+		}
+	}
+	return A;
+}
+
+// console.log(transponationClock([[0, 1, 2], [3, 4, 5], [6, 7, 8]], 3))
+// console.log(transponationAntiClock([[0, 1, 2], [3, 4, 5], [6, 7, 8]], 3))
+
+
+
+
+
+
+
+
+class NewController {
+	collapseLeftRight (map) {
+		console.log('--->')
+		for(let i=0; i<size; i++) {
+
+			let coloredLine = [] //all not empty blocks
+			for(let j=0; j<size; j++) {
+				if(map[i][j] != 0) {
+					coloredLine.push(j)
+				}
+			}
+
+			for(let k=coloredLine.length; k>0; k--) {
+				let coloredBlockPos = coloredLine[k-1]
+				let j = coloredBlockPos
+
+				let pullBlockColor = map[i][j]
+				// console.log(coloredLine, pullBlockColor, j)
+				j++
+
+				let e = 0
+				while(map[i][j] == 0) { //pass empty blocks
+					e++;
+					j++;
+				}
+				let similarCount = 0
+				while(map[i][j] == pullBlockColor) {
+					j++;
+					similarCount++;
+				}
+				j--;
+				// console.log(similarCount, j)
+				if(similarCount < 2) {
+					map[i][coloredBlockPos] = 0
+					map[i][j-similarCount] = pullBlockColor
+				}
+				else {
+					console.log(e)
+					if(e > 0) {
+						map[i][coloredBlockPos] = 0
+						for(let k=0; k<similarCount; k++) {
+							map[i][j-k] = 0
+						}
+					}
+				}
+			}
+		}
+		return map
+	}
+
+	collapseRightLeft() {
+		console.log("----->")
+		console.log(map)
+		let transMap = transponationAntiClock(transponationAntiClock(map, size), size)
+		console.log(transMap)
+		let newMap = this.collapseLeftRight(transMap)
+		console.log(newMap)
+		let transNewMap = transponationClock(transponationClock(newMap, size), size)
+		console.log(transNewMap)
+		map = transNewMap
+		draw()
+	}
+
+
+	collapseBottomTop() {
+		console.log("^^^^^^^^")
+		console.log(map)
+		let transMap = transponationClock(map, size)
+		console.log(transMap)
+		let newMap = this.collapseLeftRight(transMap)
+		console.log(newMap)
+		let transNewMap = transponationAntiClock(newMap, size)
+		console.log(transNewMap)
+		map = transNewMap
+		draw()
+	}
+
+
+	collapseTopBottom() {
+		console.log("VVVVVV")
+		console.log(map)
+		let transMap = transponationAntiClock(map, size)
+		console.log(transMap)
+		let newMap = this.collapseLeftRight(transMap)
+		console.log(newMap)
+		let transNewMap = transponationClock(newMap, size)
+		console.log(transNewMap)
+		map = transNewMap
+		// generateRandomElemsLine("top")
+		draw()
+	}
+
+
+
+	// collapseRightLeft () {
+	// 	console.log('<---')
+	// 	for(let i=0; i<size; i++) {
+
+	// 		let coloredLine = [] //all not empty blocks
+	// 		for(let j=0; j<size; j++) {
+	// 			if(map[i][j] != 0) {
+	// 				coloredLine.push(j)
+	// 			}
+	// 		}
+
+	// 		for(let k=0; k<coloredLine.length; k++) {
+	// 			let coloredBlockPos = coloredLine[k]
+	// 			let j = coloredBlockPos
+
+	// 			let pullBlockColor = map[i][coloredBlockPos]
+	// 			j--;
+
+	// 			let e = 0
+	// 			while(map[i][j] == 0) { //pass empty blocks
+	// 				j--;
+	// 				e++;
+	// 			}
+	// 			// console.log(j)
+	// 			let similarCount = 0
+	// 			while(map[i][j] == pullBlockColor) {
+	// 				j--;
+	// 				similarCount++;
+	// 			}
+	// 			j++;
+	// 			// console.log(similarCount, j)
+	// 			if(similarCount < 2) {
+	// 				map[i][coloredBlockPos] = 0
+	// 				map[i][j+similarCount] = pullBlockColor
+	// 			}
+	// 			else {
+	// 									console.log(e)
+	// 				if(e>0){
+	// 					map[i][coloredBlockPos] = 0
+	// 					for(let k=0; k<similarCount; k++) {
+	// 						map[i][j+k] = 0
+	// 					}
+	// 				}
+
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+
+
+	// collapseBottomTop() {
+	// 	console.log('^^^^^^')
+	// 	for(let j=0; j<size; j++) {
+
+	// 		let coloredLine = []
+	// 		for(let i=0; i<size; i++) {
+	// 			if(map[i][j] != 0) {
+	// 				coloredLine.push(i)
+	// 			}
+	// 		}
+
+	// 		for(let k=0; k<coloredLine.length; k++){
+	// 			let coloredBlockPos = coloredLine[k]
+	// 			let i = coloredBlockPos
+	// 			let pullBlockColor = map[coloredBlockPos][j]
+	// 			i--
+
+	// 			let e = 0
+	// 			while(i>=0 && map[i][j] == 0) {//pass empty blocks
+	// 				i--;
+	// 				e++;
+	// 			}
+	// 			let similarCount = 0
+	// 			while(i>=0 && map[i][j] == pullBlockColor) {
+	// 				i--;
+	// 				similarCount++;
+	// 			}
+	// 			i++;
+
+	// 			if(similarCount < 2) {
+	// 				map[coloredBlockPos][j] = 0
+	// 				map[i+similarCount][j] = pullBlockColor
+	// 			}
+	// 			else { //collapse
+	// 									console.log(e)
+	// 				if(e > 0) {
+	// 					map[coloredBlockPos][j] = 0
+	// 					for(let k=0; k<similarCount; k++) {
+	// 						map[i+k][j] = 0	
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+
+}
+
+
+
+
+
+let newC = new NewController;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	//left -> right only
+	let collapseLeftRight = () => {
+		let collapseSimilarBlocks = (i, j) => {
+			let pullBlockColor = map[i][j]
+			while(map[i][j+1] == pullBlockColor) {
+				map[i][j] = 0
+				map[i][j+1] = pullBlockColor
+				j++
+			}
+			draw()
+		}
+		let collapseGaps = (i, j, k, callback) => {
+			if(j>=0) {
+				while(map[i][j]==0 && j>0) {
+					j--;
+				}
+				if(j != k) {
+					map[i][k] = map[i][j]
+					map[i][j] = 0
+				}
+					k--;
+					j--;
+				collapseGaps(i, j, k, callback)
+			}
+			else {
+				draw()
+				callback(i)
+			}
+		}
+		for(let i=0; i<size; i++) {
+			collapseGaps(i, size-1, size-1, function(i) {
+			let blockColor = 0
+			for(let j=0; j<size; j++) {
+				if(map[i][j]!=0 && map[i][j]!=blockColor) {
+					blockColor = map[i][j]
+					collapseSimilarBlocks(i, j)
+				}
+			}
+			collapseGaps(i, size-1, size-1, () => {})
+			})
+		}
+	}
+
+
+
+	//right -> left only
+	let collapseRightLeft = () => {
+		let collapseSimilarBlocks = (i, j) => {
+			let pullBlockColor = map[i][j]
+			while(map[i][j+1] == pullBlockColor) {
+				map[i][j] = 0
+				map[i][j+1] = pullBlockColor
+				j++
+			}
+			draw()
+		}
+		let collapseGaps = (i, j, k, callback) => {
+			if(j < size) {
+				while(map[i][j]==0 && j<size-1) {
+					j++;
+				}
+				if(j != k) {
+					map[i][k] = map[i][j]
+					map[i][j] = 0
+				}
+					k++;
+					j++;
+				collapseGaps(i, j, k, callback)
+			}
+			else {
+				draw()
+				callback(i)
+			}
+		}
+		for(let i=0; i<size; i++) {
+			collapseGaps(i, 0, 0, function(i) {
+			let blockColor = 0
+			for(let j=0; j<size; j++) {
+				if(map[i][j]!=0 && map[i][j]!=blockColor) {
+					blockColor = map[i][j]
+					collapseSimilarBlocks(i, j)
+				}
+			}
+			collapseGaps(i, 0, 0, () => {})
+			})
+		}
+	}
+
+
+		//bottom -> top only
+	let collapseBottomTop = () => {
+		let collapseSimilarBlocks = (i, j) => {
+			let pullBlockColor = map[j][i]
+			console.log(j, i, pullBlockColor)
+			while(map[j+1][i] == pullBlockColor) {
+				map[j][i] = 0
+				map[j+1][i] = pullBlockColor
+				j++
+			}
+			draw()
+		}
+		let collapseGaps = (i, j, k, callback) => {
+			if(j < size) {
+				while(map[j][i]==0 && j<size-1) {
+					j++;
+				}
+				if(j != k) {
+					map[k][i] = map[j][i]
+					map[j][i] = 0
+				}
+					k++;
+					j++;
+				collapseGaps(i, j, k, callback)
+			}
+			else {
+				draw()
+				callback(i)
+			}
+		}
+		for(let i=0; i<size; i++) {
+			collapseGaps(i, 0, 0, function(i) {
+			let blockColor = 0
+			for(let j=0; j<size; j++) {
+				if(map[j][i]!=0 && map[j][i]!=blockColor) {
+					blockColor = map[j][i]
+					// console.log(i, j, map[i][j])
+					collapseSimilarBlocks(i, j)
+				}
+			}
+			collapseGaps(i, 0, 0, () => {})
+			})
+		}
+	}
+
+
+
+
+
 
 	function slowMotion2(dir, callback) {  //[0,0,0,1,2,0,3,0] --> [1, 2, 3, 0, 0, 0]
 		//up
@@ -271,7 +873,7 @@
 	}
 
 
-	initGame();
+
 </script>
 </body>
 </html>
